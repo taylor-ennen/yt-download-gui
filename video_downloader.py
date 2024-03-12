@@ -7,7 +7,7 @@ def download_video(url, download_folder, on_progress_callback):
         yt = YouTube(url, on_progress_callback=on_progress_callback)
         video = yt.streams.get_highest_resolution()
         download_path = os.path.join(download_folder, video.default_filename)
-        print("Starting download for {video.title} to {download_folder}.")
+        print(f"Starting download for {video.title} to {download_folder}.")
 
         # Check if the file already exists to avoid re-downloading
         if os.path.exists(download_path):
