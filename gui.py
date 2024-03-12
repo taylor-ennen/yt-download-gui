@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import filedialog, scrolledtext, ttk
-import threading
 import os
 import sys
 import pyperclip
@@ -12,8 +11,10 @@ class YouTubeDownloaderApp:
         self.master = master
         master.title("YouTube Video Downloader")
 
-        # Determine base directory
+        # Determine and create base directory if necessary
         self.base_dir = self.determine_base_directory()
+        if not os.path.exists(self.base_dir):
+            os.makedirs(self.base_dir)
 
         # Setup GUI components
         self.setup_gui_components()
@@ -22,10 +23,15 @@ class YouTubeDownloaderApp:
         self.prefill_url_from_clipboard()
 
     def determine_base_directory(self):
+        # Check if we are running as a frozen application (like a PyInstaller executable)
         if getattr(sys, 'frozen', False):
-            return os.path.dirname(sys.executable)
+            base_dir = os.path.dirname(sys.executable)
         else:
-            return os.path.dirname(os.path.abspath(__file__))
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Append "downloaded_videos" to the base directory
+        downloaded_videos_path = os.path.join(base_dir, "downloaded_videos")
+        return downloaded_videos_path
 
     def setup_gui_components(self):
         # URL Entry
@@ -66,7 +72,7 @@ class YouTubeDownloaderApp:
         clipboard_content = pyperclip.paste()
         if is_valid_youtube_url(clipboard_content):
             self.url_entry.insert(0, clipboard_content)
-            self.display_message(f"\nURL: {clipboard_content}.\n Imported successfully.\n Send <Return> or\n Enter or\n Click Download to begin.\n")
+            self.display_message(f"URL: {clipboard_content} has been pasted from your clipboard.")
 
     def browse_folder(self):
         directory = filedialog.askdirectory(initialdir=self.folder_path.get())
@@ -74,15 +80,11 @@ class YouTubeDownloaderApp:
             self.folder_path.set(directory)
 
     def initiate_download(self, event=None):
-        self.display_message("\nDownload initiated.\nVerifying runtime...\n")
-        threading.Thread(target=self.start_download, daemon=True).start()
-
-    def start_download(self):
         url = self.url_entry.get()
         download_folder = self.folder_path.get()
 
         if not url or not download_folder:
-            self.display_message("\nPlease fill in all fields.\n")
+            self.display_message("Please fill in all fields.")
             return
 
         success, message = download_video(url, download_folder, self.progress_callback)
@@ -101,10 +103,10 @@ class YouTubeDownloaderApp:
         self.master.update_idletasks()
 
     def reset_progress_bar(self):
-        self.update_progress_bar(0)
+        self.progress_bar['value'] = 0
 
     def display_message(self, message):
-        self.status_display.insert(tk.END, f"\n\n{message}")
+        self.status_display.insert(tk.END, message + "\n")
         self.status_display.see(tk.END)
 
 def main():
